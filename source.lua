@@ -7,10 +7,10 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local function create(className, props)
+local function create(className, properties)
 	local obj = Instance.new(className)
-	for key, value in pairs(props) do
-		obj[key] = value
+	for property, value in pairs(properties) do
+		obj[property] = value
 	end
 	return obj
 end
@@ -23,6 +23,7 @@ end
 
 local function bindDrag(guiObject, handle)
 	handle.Active = true
+	handle.Selectable = false
 
 	local dragging = false
 	local dragInput
@@ -66,9 +67,9 @@ local function bindDrag(guiObject, handle)
 	end)
 end
 
-local function bindCanvas(scrollFrame, layout, padding)
+local function bindCanvas(scrollFrame, layout, extraPadding)
 	local function update()
-		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + padding)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + extraPadding)
 	end
 
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
@@ -81,7 +82,7 @@ function UI:CreateWindow(options)
 	local window = {}
 	local tabs = {}
 	local activeTab = nil
-	local openState = false
+	local opened = false
 	local animating = false
 
 	local windowName = options.Name or "ArialNeoUi"
@@ -95,22 +96,6 @@ function UI:CreateWindow(options)
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	})
 
-	local dropshadow = create("ImageLabel", {
-		Name = "Dropshadow",
-		Parent = screenGui,
-		ZIndex = 1,
-		BorderSizePixel = 0,
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		ImageTransparency = 0.7,
-		ImageColor3 = Color3.fromRGB(3, 3, 3),
-		Image = "rbxassetid://1316045217",
-		Size = UDim2.new(0, 670, 0, 392),
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 108, 0, -24),
-		Visible = false,
-		ScaleType = Enum.ScaleType.Stretch
-	})
-
 	local main = create("Frame", {
 		Name = "Main",
 		Parent = screenGui,
@@ -119,14 +104,35 @@ function UI:CreateWindow(options)
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 0.7,
 		Size = UDim2.new(0, 590, 0, 330),
-		Position = UDim2.new(0, 148, 0, 6),
+		Position = UDim2.new(0, 443, 0, 171),
+		AnchorPoint = Vector2.new(0.5, 0.5),
 		ZIndex = 2,
-		ClipsDescendants = true
+		ClipsDescendants = false
 	})
 
 	create("UICorner", {
 		CornerRadius = UDim.new(0, 3),
 		Parent = main
+	})
+
+	local mainScale = create("UIScale", {
+		Scale = 0,
+		Parent = main
+	})
+
+	local dropshadow = create("ImageLabel", {
+		Name = "Dropshadow",
+		Parent = main,
+		ZIndex = 1,
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		ImageTransparency = 0.7,
+		ImageColor3 = Color3.fromRGB(3, 3, 3),
+		Image = "rbxassetid://1316045217",
+		Size = UDim2.new(0, 670, 0, 392),
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, -40, 0, -30),
+		ScaleType = Enum.ScaleType.Stretch
 	})
 
 	local title = create("TextLabel", {
@@ -158,8 +164,8 @@ function UI:CreateWindow(options)
 		BackgroundTransparency = 1,
 		Image = iconImage,
 		Position = UDim2.new(0, -50, 0, 0),
-		ScaleType = Enum.ScaleType.Stretch,
-		ZIndex = 4
+		ZIndex = 4,
+		ScaleType = Enum.ScaleType.Stretch
 	})
 
 	create("UICorner", {
@@ -239,7 +245,8 @@ function UI:CreateWindow(options)
 		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.fromRGB(192, 192, 192),
 		Size = UDim2.new(0, 50, 0, 50),
-		Position = UDim2.new(0, 62, 0, 16),
+		Position = UDim2.new(0, 87, 0, 41),
+		AnchorPoint = Vector2.new(0.5, 0.5),
 		Image = iconImage,
 		AutoButtonColor = false,
 		Visible = true,
@@ -250,6 +257,11 @@ function UI:CreateWindow(options)
 
 	create("UICorner", {
 		CornerRadius = UDim.new(0, 3),
+		Parent = openGui
+	})
+
+	local openScale = create("UIScale", {
+		Scale = 1,
 		Parent = openGui
 	})
 
@@ -269,31 +281,30 @@ function UI:CreateWindow(options)
 	end
 
 	local function showWindow()
-		if animating or openState then
+		if animating or opened then
 			return
 		end
 
 		animating = true
-		dropshadow.Visible = true
+
 		main.Visible = true
 		openGui.Visible = true
-
-		main.Size = UDim2.new(0, 0, 0, 0)
-		openGui.Size = UDim2.new(0, 0, 0, 0)
+		mainScale.Scale = 0
+		openScale.Scale = 1
 
 		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-		local mainTween = tween(main, info, {
-			Size = UDim2.new(0, 590, 0, 330)
+		local mainTween = tween(mainScale, info, {
+			Scale = 1
 		})
 
-		local openTween = tween(openGui, info, {
-			Size = UDim2.new(0, 0, 0, 0)
+		local openTween = tween(openScale, info, {
+			Scale = 0
 		})
 
 		mainTween.Completed:Once(function()
 			openGui.Visible = false
-			openState = true
+			opened = true
 			animating = false
 		end)
 
@@ -303,29 +314,30 @@ function UI:CreateWindow(options)
 	end
 
 	local function hideWindow()
-		if animating or not openState then
+		if animating or not opened then
 			return
 		end
 
 		animating = true
-		dropshadow.Visible = true
+
 		main.Visible = true
 		openGui.Visible = true
+		mainScale.Scale = 1
+		openScale.Scale = 0
 
 		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-		local mainTween = tween(main, info, {
-			Size = UDim2.new(0, 0, 0, 0)
+		local mainTween = tween(mainScale, info, {
+			Scale = 0
 		})
 
-		local openTween = tween(openGui, info, {
-			Size = UDim2.new(0, 50, 0, 50)
+		local openTween = tween(openScale, info, {
+			Scale = 1
 		})
 
 		mainTween.Completed:Once(function()
 			main.Visible = false
-			dropshadow.Visible = false
-			openState = false
+			opened = false
 			animating = false
 		end)
 
@@ -358,8 +370,8 @@ function UI:CreateWindow(options)
 		})
 
 		create("UICorner", {
-			Parent = tabButton,
-			CornerRadius = UDim.new(0, 3)
+			CornerRadius = UDim.new(0, 3),
+			Parent = tabButton
 		})
 
 		local pageFrame = create("ScrollingFrame", {
@@ -379,8 +391,8 @@ function UI:CreateWindow(options)
 		})
 
 		create("UICorner", {
-			Parent = pageFrame,
-			CornerRadius = UDim.new(0, 3)
+			CornerRadius = UDim.new(0, 3),
+			Parent = pageFrame
 		})
 
 		create("UIPadding", {

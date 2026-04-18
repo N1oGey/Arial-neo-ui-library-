@@ -7,28 +7,27 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local function create(className, properties)
+local function create(className, props)
 	local obj = Instance.new(className)
-	for property, value in pairs(properties) do
-		obj[property] = value
+	for k, v in pairs(props) do
+		obj[k] = v
 	end
 	return obj
 end
 
-local function tween(object, tweenInfo, goal)
-	local tw = TweenService:Create(object, tweenInfo, goal)
+local function tween(obj, info, goal)
+	local tw = TweenService:Create(obj, info, goal)
 	tw:Play()
 	return tw
 end
 
-local function bindDrag(guiObject, handle)
-	handle.Active = true
-	handle.Selectable = false
+local function bindDrag(guiObject, dragHandle)
+	dragHandle.Active = true
 
 	local dragging = false
+	local dragInput
 	local dragStart
 	local startPos
-	local dragInput
 
 	local function update(input)
 		local delta = input.Position - dragStart
@@ -40,7 +39,7 @@ local function bindDrag(guiObject, handle)
 		)
 	end
 
-	handle.InputBegan:Connect(function(input)
+	dragHandle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
@@ -54,7 +53,7 @@ local function bindDrag(guiObject, handle)
 		end
 	end)
 
-	handle.InputChanged:Connect(function(input)
+	dragHandle.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 			dragInput = input
 		end
@@ -67,11 +66,10 @@ local function bindDrag(guiObject, handle)
 	end)
 end
 
-local function bindCanvas(scrollFrame, layout, extra)
+local function bindCanvas(scrollFrame, layout, padding)
 	local function update()
-		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + extra)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + padding)
 	end
-
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
 	update()
 end
@@ -81,8 +79,8 @@ function UI:CreateWindow(options)
 
 	local window = {}
 	local tabs = {}
-	local activeTab = nil
-	local isOpen = false
+	local activeTab
+	local open = false
 	local animating = false
 
 	local windowName = options.Name or "ArialNeoUi"
@@ -90,10 +88,10 @@ function UI:CreateWindow(options)
 	local iconImage = options.Icon or ""
 
 	local mainSize = UDim2.new(0, 590, 0, 330)
-	local mainPos = UDim2.new(0, 443, 0, 171)
+	local mainPos = UDim2.new(0.5, 0, 0.5, 0)
 	local openSize = UDim2.new(0, 50, 0, 50)
 	local openPos = UDim2.new(0, 87, 0, 41)
-	local hiddenSize = UDim2.new(0, 0, 0, 0)
+	local zeroSize = UDim2.new(0, 0, 0, 0)
 
 	local screenGui = create("ScreenGui", {
 		Name = windowName,
@@ -109,7 +107,7 @@ function UI:CreateWindow(options)
 		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 0.7,
-		Size = mainSize,
+		Size = zeroSize,
 		Position = mainPos,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		ClipsDescendants = true,
@@ -160,7 +158,6 @@ function UI:CreateWindow(options)
 		Size = UDim2.new(0, 34, 0, 32),
 		Position = UDim2.new(0, -50, 0, 0),
 		Image = iconImage,
-		ImageTransparency = 0,
 		ScaleType = Enum.ScaleType.Stretch,
 		Parent = title
 	})
@@ -199,7 +196,8 @@ function UI:CreateWindow(options)
 		Position = UDim2.new(0, 14, 0, 58),
 		ScrollBarThickness = 0,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
-		CanvasSize = UDim2.new(0, 0, 0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
 		Parent = main
 	})
 
@@ -208,7 +206,7 @@ function UI:CreateWindow(options)
 		Parent = tabFrame
 	})
 
-	local tabPadding = create("UIPadding", {
+	create("UIPadding", {
 		PaddingTop = UDim.new(0, 8),
 		PaddingBottom = UDim.new(0, 8),
 		PaddingLeft = UDim.new(0, 8),
@@ -223,9 +221,7 @@ function UI:CreateWindow(options)
 		Parent = tabFrame
 	})
 
-	bindCanvas(tabFrame, tabLayout, 16)
-
-	local pageFrameHolder = create("Frame", {
+	local pagesHolder = create("Frame", {
 		Name = "PagesHolder",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(0, 446, 0, 258),
@@ -238,11 +234,10 @@ function UI:CreateWindow(options)
 		Name = "OpenGui",
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
-		Size = openSize,
+		Size = zeroSize,
 		Position = openPos,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Image = iconImage,
-		ImageTransparency = 0,
 		ScaleType = Enum.ScaleType.Stretch,
 		AutoButtonColor = false,
 		Visible = true,
@@ -257,44 +252,43 @@ function UI:CreateWindow(options)
 	bindDrag(main, title)
 	bindDrag(openGui, openGui)
 
-	local function setTabActive(tabData)
-		activeTab = tabData
-
-		for _, item in ipairs(tabs) do
-			item.Button.BackgroundColor3 = item == tabData and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
-			item.Page.Visible = item == tabData
+	local function refreshTabs()
+		for _, tab in ipairs(tabs) do
+			tab.Page.Visible = tab == activeTab
+			tab.Button.BackgroundColor3 = tab == activeTab and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
 		end
 	end
 
-	local function openWindow()
-		if animating or isOpen then
+	local function setActiveTab(tabData)
+		activeTab = tabData
+		refreshTabs()
+	end
+
+	local function showMain()
+		if animating or open then
 			return
 		end
 
 		animating = true
-
-		openGui.Visible = true
-		openGui.Size = hiddenSize
-		openGui.Position = openPos
-
 		main.Visible = true
-		main.Size = hiddenSize
+		main.Size = zeroSize
 		main.Position = mainPos
 
-		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		openGui.Visible = true
+		openGui.Size = openSize
 
+		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local mainTween = tween(main, info, {
 			Size = mainSize,
 			Position = mainPos
 		})
-
 		local openTween = tween(openGui, info, {
-			Size = hiddenSize
+			Size = zeroSize
 		})
 
 		mainTween.Completed:Once(function()
 			openGui.Visible = false
-			isOpen = true
+			open = true
 			animating = false
 		end)
 
@@ -303,33 +297,29 @@ function UI:CreateWindow(options)
 		end)
 	end
 
-	local function closeWindow()
-		if animating or not isOpen then
+	local function hideMain()
+		if animating or not open then
 			return
 		end
 
 		animating = true
-
-		openGui.Visible = true
-		openGui.Size = hiddenSize
-		openGui.Position = openPos
-
 		main.Visible = true
 
-		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		openGui.Visible = true
+		openGui.Size = zeroSize
 
+		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local mainTween = tween(main, info, {
-			Size = hiddenSize,
+			Size = zeroSize,
 			Position = mainPos
 		})
-
 		local openTween = tween(openGui, info, {
 			Size = openSize
 		})
 
 		mainTween.Completed:Once(function()
 			main.Visible = false
-			isOpen = false
+			open = false
 			animating = false
 		end)
 
@@ -338,8 +328,8 @@ function UI:CreateWindow(options)
 		end)
 	end
 
-	closeButton.MouseButton1Click:Connect(closeWindow)
-	openGui.MouseButton1Click:Connect(openWindow)
+	closeButton.MouseButton1Click:Connect(hideMain)
+	openGui.MouseButton1Click:Connect(showMain)
 
 	function window:AddTab(tabOptions)
 		tabOptions = tabOptions or {}
@@ -367,16 +357,17 @@ function UI:CreateWindow(options)
 
 		local page = create("ScrollingFrame", {
 			Name = "PageFrame",
+			BorderSizePixel = 0,
 			BackgroundColor3 = Color3.fromRGB(192, 192, 192),
 			BackgroundTransparency = 0.4,
-			BorderSizePixel = 0,
 			Size = UDim2.new(0, 446, 0, 258),
 			Position = UDim2.new(0, 0, 0, 0),
 			ScrollBarThickness = 0,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
-			CanvasSize = UDim2.new(0, 0, 0, 0),
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			CanvasSize = UDim2.new(),
 			Visible = false,
-			Parent = pageFrameHolder
+			Parent = pagesHolder
 		})
 
 		create("UICorner", {
@@ -384,7 +375,7 @@ function UI:CreateWindow(options)
 			Parent = page
 		})
 
-		local pagePadding = create("UIPadding", {
+		create("UIPadding", {
 			PaddingTop = UDim.new(0, 8),
 			PaddingBottom = UDim.new(0, 8),
 			PaddingLeft = UDim.new(0, 8),
@@ -399,12 +390,9 @@ function UI:CreateWindow(options)
 			Parent = page
 		})
 
-		bindCanvas(page, pageLayout, 16)
-
 		local tabData = {
 			Button = tabButton,
-			Page = page,
-			Name = tabName
+			Page = page
 		}
 
 		function tabData:AddButton(buttonOptions)
@@ -433,7 +421,7 @@ function UI:CreateWindow(options)
 			})
 
 			button.MouseButton1Click:Connect(function()
-				if type(callback) == "function" then
+				if typeof(callback) == "function" then
 					pcall(callback)
 				end
 			end)
@@ -442,24 +430,26 @@ function UI:CreateWindow(options)
 		end
 
 		tabButton.MouseButton1Click:Connect(function()
-			setTabActive(tabData)
+			setActiveTab(tabData)
 		end)
 
 		table.insert(tabs, tabData)
 
 		if not activeTab then
-			setTabActive(tabData)
+			setActiveTab(tabData)
+		else
+			refreshTabs()
 		end
 
 		return tabData
 	end
 
 	function window:Show()
-		openWindow()
+		showMain()
 	end
 
 	function window:Hide()
-		closeWindow()
+		hideMain()
 	end
 
 	function window:SetTitle(text)
@@ -472,7 +462,7 @@ function UI:CreateWindow(options)
 	window.IconImg = icon
 	window.OpenGui = openGui
 	window.TabFrame = tabFrame
-	window.PagesHolder = pageFrameHolder
+	window.PagesHolder = pagesHolder
 
 	return window
 end

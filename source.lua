@@ -7,10 +7,10 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local function create(className, props)
+local function create(className, properties)
 	local obj = Instance.new(className)
-	for key, value in pairs(props) do
-		obj[key] = value
+	for property, value in pairs(properties) do
+		obj[property] = value
 	end
 	return obj
 end
@@ -23,12 +23,11 @@ end
 
 local function bindDrag(guiObject, handle)
 	handle.Active = true
-	handle.Selectable = false
 
 	local dragging = false
+	local dragInput
 	local dragStart
 	local startPos
-	local dragInput
 
 	local function update(input)
 		local delta = input.Position - dragStart
@@ -67,9 +66,9 @@ local function bindDrag(guiObject, handle)
 	end)
 end
 
-local function bindCanvas(scrollFrame, layout, extraPadding)
+local function bindCanvas(scrollFrame, layout, padding)
 	local function update()
-		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + extraPadding)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + padding)
 	end
 
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
@@ -79,41 +78,27 @@ end
 function UI:CreateWindow(options)
 	options = options or {}
 
-	local window = {}
+	local self = {}
 	local tabs = {}
-	local activeTab
-	local opened = false
+	local activeTab = nil
+	local openState = false
 	local animating = false
 
-	local windowName = options.Name or "ArialNeoUi"
-	local titleText = options.Title or "Title"
-	local iconImage = options.Icon or ""
-
-	local mainSize = UDim2.new(0, 590, 0, 330)
-	local mainPos = UDim2.new(0.5, 0, 0.5, 0)
-	local openSize = UDim2.new(0, 50, 0, 50)
-	local openPos = UDim2.new(0, 87, 0, 41)
-	local zeroSize = UDim2.new(0, 0, 0, 0)
-
 	local screenGui = create("ScreenGui", {
-		Name = windowName,
+		Name = "ArialNeoUi",
 		ResetOnSpawn = false,
-		IgnoreGuiInset = true,
-		ZIndexBehavior = Enum.ZIndexBehavior.Global,
 		Parent = PlayerGui
 	})
 
 	local main = create("Frame", {
 		Name = "Main",
+		Parent = screenGui,
 		Visible = false,
 		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 0.7,
-		Size = zeroSize,
-		Position = mainPos,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		ClipsDescendants = true,
-		Parent = screenGui
+		Size = UDim2.new(0, 590, 0, 330),
+		Position = UDim2.new(0, 148, 0, 6)
 	})
 
 	create("UICorner", {
@@ -123,141 +108,141 @@ function UI:CreateWindow(options)
 
 	create("ImageLabel", {
 		Name = "Dropshadow",
+		Parent = main,
 		ZIndex = -1,
 		BorderSizePixel = 0,
-		BackgroundTransparency = 1,
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		ImageTransparency = 0.7,
 		ImageColor3 = Color3.fromRGB(3, 3, 3),
 		Image = "rbxassetid://1316045217",
 		Size = UDim2.new(0, 670, 0, 392),
-		Position = UDim2.new(0, -40, 0, -30),
-		Parent = main
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, -40, 0, -30)
 	})
 
 	local title = create("TextLabel", {
 		Name = "Title",
+		Parent = main,
 		BorderSizePixel = 0,
+		TextSize = 18,
 		BackgroundColor3 = Color3.fromRGB(192, 192, 192),
+		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
+		TextColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = 0.4,
 		Size = UDim2.new(0, 454, 0, 32),
-		Position = UDim2.new(0, 64, 0, 12),
-		Text = titleText,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
-		TextSize = 18,
-		FontFace = Font.fromEnum(Enum.Font.SourceSansBold),
-		Parent = main
+		Text = options.Title or "Arial Neo Ui test",
+		Position = UDim2.new(0, 64, 0, 12)
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
-		Parent = title
+		Parent = title,
+		CornerRadius = UDim.new(0, 3)
 	})
 
-	local icon = create("ImageLabel", {
+	local iconImg = create("ImageLabel", {
 		Name = "IconImg",
+		Parent = title,
 		BorderSizePixel = 0,
-		BackgroundTransparency = 1,
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		Size = UDim2.new(0, 34, 0, 32),
-		Position = UDim2.new(0, -50, 0, 0),
-		Image = iconImage,
-		ScaleType = Enum.ScaleType.Stretch,
-		Parent = title
+		BackgroundTransparency = 1,
+		Image = options.Icon or "",
+		Position = UDim2.new(0, -50, 0, 0)
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(1, 0),
-		Parent = icon
+		Parent = iconImg,
+		CornerRadius = UDim.new(1, 0)
 	})
 
 	local closeButton = create("TextButton", {
 		Name = "Close",
+		Parent = title,
 		BorderSizePixel = 0,
+		TextSize = 18,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundColor3 = Color3.fromRGB(192, 192, 192),
+		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
 		BackgroundTransparency = 0.4,
 		Size = UDim2.new(0, 42, 0, 32),
-		Position = UDim2.new(0, 468, 0, 0),
 		Text = "X",
-		TextColor3 = Color3.fromRGB(255, 255, 255),
-		TextSize = 18,
-		FontFace = Font.fromEnum(Enum.Font.SourceSansBold),
-		AutoButtonColor = false,
-		Parent = title
+		Position = UDim2.new(0, 468, 0, 0),
+		AutoButtonColor = false
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
-		Parent = closeButton
+		Parent = closeButton,
+		CornerRadius = UDim.new(0, 3)
 	})
 
 	local tabFrame = create("ScrollingFrame", {
 		Name = "TabFrame",
+		Parent = main,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
 		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.fromRGB(192, 192, 192),
-		BackgroundTransparency = 0.4,
 		Size = UDim2.new(0, 104, 0, 258),
 		Position = UDim2.new(0, 14, 0, 58),
 		ScrollBarThickness = 0,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 0.4,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		Parent = main
+		AutomaticCanvasSize = Enum.AutomaticSize.Y
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
-		Parent = tabFrame
+		Parent = tabFrame,
+		CornerRadius = UDim.new(0, 3)
 	})
 
 	create("UIPadding", {
+		Parent = tabFrame,
 		PaddingTop = UDim.new(0, 8),
 		PaddingBottom = UDim.new(0, 8),
 		PaddingLeft = UDim.new(0, 8),
-		PaddingRight = UDim.new(0, 8),
-		Parent = tabFrame
+		PaddingRight = UDim.new(0, 8)
 	})
 
 	local tabLayout = create("UIListLayout", {
+		Parent = tabFrame,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Padding = UDim.new(0, 6),
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Parent = tabFrame
+		HorizontalAlignment = Enum.HorizontalAlignment.Center
 	})
 
-	local pagesHolder = create("Frame", {
-		Name = "PagesHolder",
+	local pageHolder = create("Frame", {
+		Name = "PageHolder",
+		Parent = main,
 		BackgroundTransparency = 1,
 		Size = UDim2.new(0, 446, 0, 258),
 		Position = UDim2.new(0, 128, 0, 58),
-		ClipsDescendants = true,
-		Parent = main
+		ClipsDescendants = true
 	})
 
 	local openGui = create("ImageButton", {
 		Name = "OpenGui",
+		Parent = screenGui,
 		BorderSizePixel = 0,
-		BackgroundTransparency = 1,
-		Size = zeroSize,
-		Position = openPos,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Image = iconImage,
-		ScaleType = Enum.ScaleType.Stretch,
+		BackgroundColor3 = Color3.fromRGB(192, 192, 192),
+		Size = UDim2.new(0, 50, 0, 50),
+		Position = UDim2.new(0, 62, 0, 16),
+		Image = options.Icon or "",
 		AutoButtonColor = false,
 		Visible = true,
-		Parent = screenGui
+		BackgroundTransparency = 0
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
-		Parent = openGui
+		Parent = openGui,
+		CornerRadius = UDim.new(0, 3)
 	})
 
 	bindDrag(main, title)
 	bindDrag(openGui, openGui)
 
 	local function refreshTabs()
-		for _, tab in ipairs(tabs) do
-			tab.Page.Visible = tab == activeTab
-			tab.Button.BackgroundColor3 = tab == activeTab and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
+		for _, tabData in ipairs(tabs) do
+			tabData.Page.Visible = tabData == activeTab
+			tabData.Button.BackgroundColor3 = tabData == activeTab and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
 		end
 	end
 
@@ -267,70 +252,61 @@ function UI:CreateWindow(options)
 	end
 
 	local function showWindow()
-		if animating or opened then
+		if animating or openState then
 			return
 		end
 
 		animating = true
-
 		main.Visible = true
-		main.Size = zeroSize
-		main.Position = mainPos
-
 		openGui.Visible = true
-		openGui.Size = openSize
 
 		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-		local mainTween = tween(main, info, {
-			Size = mainSize,
-			Position = mainPos
+		local t1 = tween(main, info, {
+			Size = UDim2.new(0, 590, 0, 330)
 		})
 
-		local openTween = tween(openGui, info, {
-			Size = zeroSize
+		local t2 = tween(openGui, info, {
+			Size = UDim2.new(0, 0, 0, 0)
 		})
 
-		mainTween.Completed:Once(function()
+		t1.Completed:Once(function()
 			openGui.Visible = false
-			opened = true
+			openState = true
 			animating = false
 		end)
 
-		openTween.Completed:Once(function()
+		t2.Completed:Once(function()
 			openGui.Visible = false
 		end)
 	end
 
 	local function hideWindow()
-		if animating or not opened then
+		if animating or not openState then
 			return
 		end
 
 		animating = true
-
 		main.Visible = true
 		openGui.Visible = true
-		openGui.Size = zeroSize
 
 		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-		local mainTween = tween(main, info, {
-			Size = zeroSize,
-			Position = mainPos
+		local t1 = tween(main, info, {
+			Size = UDim2.new(0, 0, 0, 0)
 		})
 
-		local openTween = tween(openGui, info, {
-			Size = openSize
+		local t2 = tween(openGui, info, {
+			Size = UDim2.new(0, 50, 0, 50)
 		})
 
-		mainTween.Completed:Once(function()
+		t1.Completed:Once(function()
 			main.Visible = false
-			opened = false
+			openState = false
 			animating = false
 		end)
 
-		openTween.Completed:Once(function()
+		t2.Completed:Once(function()
 			openGui.Visible = true
 		end)
 	end
@@ -338,93 +314,95 @@ function UI:CreateWindow(options)
 	closeButton.MouseButton1Click:Connect(hideWindow)
 	openGui.MouseButton1Click:Connect(showWindow)
 
-	function window:AddTab(tabOptions)
+	function self:AddTab(tabOptions)
 		tabOptions = tabOptions or {}
 
-		local tabName = tabOptions.TabName or "Tab"
+		local tabName = tabOptions.TabName or "Test tab"
 
 		local tabButton = create("TextButton", {
 			Name = "TabButton",
+			Parent = tabFrame,
+			TextWrapped = true,
 			BorderSizePixel = 0,
+			TextSize = 14,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
 			BackgroundColor3 = Color3.fromRGB(206, 206, 206),
+			FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
 			Size = UDim2.new(0, 90, 0, 36),
 			Text = tabName,
-			TextWrapped = true,
-			TextColor3 = Color3.fromRGB(255, 255, 255),
-			TextSize = 14,
-			FontFace = Font.fromEnum(Enum.Font.SourceSansBold),
-			AutoButtonColor = false,
-			Parent = tabFrame
+			AutoButtonColor = false
 		})
 
 		create("UICorner", {
-			CornerRadius = UDim.new(0, 3),
-			Parent = tabButton
+			Parent = tabButton,
+			CornerRadius = UDim.new(0, 3)
 		})
 
-		local page = create("ScrollingFrame", {
+		local pageFrame = create("ScrollingFrame", {
 			Name = "PageFrame",
+			Parent = pageHolder,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
 			BorderSizePixel = 0,
 			BackgroundColor3 = Color3.fromRGB(192, 192, 192),
-			BackgroundTransparency = 0.4,
 			Size = UDim2.new(0, 446, 0, 258),
 			Position = UDim2.new(0, 0, 0, 0),
 			ScrollBarThickness = 0,
-			ScrollingDirection = Enum.ScrollingDirection.Y,
-			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 0.4,
 			CanvasSize = UDim2.new(0, 0, 0, 0),
-			Visible = false,
-			Parent = pagesHolder
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			Visible = false
 		})
 
 		create("UICorner", {
-			CornerRadius = UDim.new(0, 3),
-			Parent = page
+			Parent = pageFrame,
+			CornerRadius = UDim.new(0, 3)
 		})
 
 		create("UIPadding", {
+			Parent = pageFrame,
 			PaddingTop = UDim.new(0, 8),
 			PaddingBottom = UDim.new(0, 8),
 			PaddingLeft = UDim.new(0, 8),
-			PaddingRight = UDim.new(0, 8),
-			Parent = page
+			PaddingRight = UDim.new(0, 8)
 		})
 
 		local pageLayout = create("UIListLayout", {
+			Parent = pageFrame,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = UDim.new(0, 6),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			Parent = page
+			HorizontalAlignment = Enum.HorizontalAlignment.Center
 		})
+
+		bindCanvas(pageFrame, pageLayout, 16)
 
 		local tabData = {
 			Button = tabButton,
-			Page = page
+			Page = pageFrame
 		}
 
 		function tabData:AddButton(buttonOptions)
 			buttonOptions = buttonOptions or {}
 
-			local buttonName = buttonOptions.Name or "Button"
+			local buttonName = buttonOptions.Name or "Test button"
 			local callback = buttonOptions.Callback
 
 			local button = create("TextButton", {
 				Name = "Button",
+				Parent = pageFrame,
+				TextWrapped = true,
 				BorderSizePixel = 0,
+				TextSize = 14,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundColor3 = Color3.fromRGB(206, 206, 206),
+				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
 				Size = UDim2.new(0, 430, 0, 36),
 				Text = buttonName,
-				TextWrapped = true,
-				TextColor3 = Color3.fromRGB(255, 255, 255),
-				TextSize = 14,
-				FontFace = Font.fromEnum(Enum.Font.SourceSansBold),
-				AutoButtonColor = false,
-				Parent = page
+				AutoButtonColor = false
 			})
 
 			create("UICorner", {
-				CornerRadius = UDim.new(0, 3),
-				Parent = button
+				Parent = button,
+				CornerRadius = UDim.new(0, 3)
 			})
 
 			button.MouseButton1Click:Connect(function()
@@ -451,27 +429,27 @@ function UI:CreateWindow(options)
 		return tabData
 	end
 
-	function window:Show()
+	function self:Show()
 		showWindow()
 	end
 
-	function window:Hide()
+	function self:Hide()
 		hideWindow()
 	end
 
-	function window:SetTitle(text)
+	function self:SetTitle(text)
 		title.Text = tostring(text or "")
 	end
 
-	window.ScreenGui = screenGui
-	window.Main = main
-	window.Title = title
-	window.IconImg = icon
-	window.OpenGui = openGui
-	window.TabFrame = tabFrame
-	window.PagesHolder = pagesHolder
+	self.ScreenGui = screenGui
+	self.Main = main
+	self.Title = title
+	self.IconImg = iconImg
+	self.Close = closeButton
+	self.OpenGui = openGui
+	self.TabFrame = tabFrame
 
-	return window
+	return self
 end
 
 return UI

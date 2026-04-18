@@ -9,25 +9,26 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local function create(className, props)
 	local obj = Instance.new(className)
-	for k, v in pairs(props) do
-		obj[k] = v
+	for key, value in pairs(props) do
+		obj[key] = value
 	end
 	return obj
 end
 
-local function tween(obj, info, goal)
-	local tw = TweenService:Create(obj, info, goal)
+local function tween(object, info, goal)
+	local tw = TweenService:Create(object, info, goal)
 	tw:Play()
 	return tw
 end
 
-local function bindDrag(guiObject, dragHandle)
-	dragHandle.Active = true
+local function bindDrag(guiObject, handle)
+	handle.Active = true
+	handle.Selectable = false
 
 	local dragging = false
-	local dragInput
 	local dragStart
 	local startPos
+	local dragInput
 
 	local function update(input)
 		local delta = input.Position - dragStart
@@ -39,7 +40,7 @@ local function bindDrag(guiObject, dragHandle)
 		)
 	end
 
-	dragHandle.InputBegan:Connect(function(input)
+	handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
@@ -53,7 +54,7 @@ local function bindDrag(guiObject, dragHandle)
 		end
 	end)
 
-	dragHandle.InputChanged:Connect(function(input)
+	handle.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 			dragInput = input
 		end
@@ -66,10 +67,11 @@ local function bindDrag(guiObject, dragHandle)
 	end)
 end
 
-local function bindCanvas(scrollFrame, layout, padding)
+local function bindCanvas(scrollFrame, layout, extraPadding)
 	local function update()
-		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + padding)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + extraPadding)
 	end
+
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
 	update()
 end
@@ -80,7 +82,7 @@ function UI:CreateWindow(options)
 	local window = {}
 	local tabs = {}
 	local activeTab
-	local open = false
+	local opened = false
 	local animating = false
 
 	local windowName = options.Name or "ArialNeoUi"
@@ -121,7 +123,7 @@ function UI:CreateWindow(options)
 
 	create("ImageLabel", {
 		Name = "Dropshadow",
-		ZIndex = 0,
+		ZIndex = -1,
 		BorderSizePixel = 0,
 		BackgroundTransparency = 1,
 		ImageTransparency = 0.7,
@@ -197,7 +199,7 @@ function UI:CreateWindow(options)
 		ScrollBarThickness = 0,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
+		CanvasSize = UDim2.new(0, 0, 0, 0),
 		Parent = main
 	})
 
@@ -264,12 +266,13 @@ function UI:CreateWindow(options)
 		refreshTabs()
 	end
 
-	local function showMain()
-		if animating or open then
+	local function showWindow()
+		if animating or opened then
 			return
 		end
 
 		animating = true
+
 		main.Visible = true
 		main.Size = zeroSize
 		main.Position = mainPos
@@ -278,17 +281,19 @@ function UI:CreateWindow(options)
 		openGui.Size = openSize
 
 		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
 		local mainTween = tween(main, info, {
 			Size = mainSize,
 			Position = mainPos
 		})
+
 		local openTween = tween(openGui, info, {
 			Size = zeroSize
 		})
 
 		mainTween.Completed:Once(function()
 			openGui.Visible = false
-			open = true
+			opened = true
 			animating = false
 		end)
 
@@ -297,29 +302,31 @@ function UI:CreateWindow(options)
 		end)
 	end
 
-	local function hideMain()
-		if animating or not open then
+	local function hideWindow()
+		if animating or not opened then
 			return
 		end
 
 		animating = true
-		main.Visible = true
 
+		main.Visible = true
 		openGui.Visible = true
 		openGui.Size = zeroSize
 
 		local info = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
 		local mainTween = tween(main, info, {
 			Size = zeroSize,
 			Position = mainPos
 		})
+
 		local openTween = tween(openGui, info, {
 			Size = openSize
 		})
 
 		mainTween.Completed:Once(function()
 			main.Visible = false
-			open = false
+			opened = false
 			animating = false
 		end)
 
@@ -328,8 +335,8 @@ function UI:CreateWindow(options)
 		end)
 	end
 
-	closeButton.MouseButton1Click:Connect(hideMain)
-	openGui.MouseButton1Click:Connect(showMain)
+	closeButton.MouseButton1Click:Connect(hideWindow)
+	openGui.MouseButton1Click:Connect(showWindow)
 
 	function window:AddTab(tabOptions)
 		tabOptions = tabOptions or {}
@@ -365,7 +372,7 @@ function UI:CreateWindow(options)
 			ScrollBarThickness = 0,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			CanvasSize = UDim2.new(),
+			CanvasSize = UDim2.new(0, 0, 0, 0),
 			Visible = false,
 			Parent = pagesHolder
 		})
@@ -445,11 +452,11 @@ function UI:CreateWindow(options)
 	end
 
 	function window:Show()
-		showMain()
+		showWindow()
 	end
 
 	function window:Hide()
-		hideMain()
+		hideWindow()
 	end
 
 	function window:SetTitle(text)

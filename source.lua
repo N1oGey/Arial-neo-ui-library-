@@ -7,10 +7,10 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local function create(className, properties)
+local function create(className, props)
 	local obj = Instance.new(className)
-	for property, value in pairs(properties) do
-		obj[property] = value
+	for key, value in pairs(props) do
+		obj[key] = value
 	end
 	return obj
 end
@@ -67,9 +67,9 @@ local function bindDrag(guiObject, handle)
 	end)
 end
 
-local function bindCanvas(scrollFrame, layout, extraPadding)
+local function bindCanvas(scrollFrame, layout, padding)
 	local function update()
-		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + extraPadding)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + padding)
 	end
 
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
@@ -104,7 +104,7 @@ function UI:CreateWindow(options)
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 0.7,
 		Size = UDim2.new(0, 590, 0, 330),
-		Position = UDim2.new(0, 443, 0, 171),
+		Position = UDim2.new(0, 148, 0, 6),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		ZIndex = 2,
 		ClipsDescendants = false
@@ -268,16 +268,71 @@ function UI:CreateWindow(options)
 	bindDrag(main, title)
 	bindDrag(openGui, openGui)
 
+	local function hideAllPagesExcept(targetPage)
+		for _, tabData in ipairs(tabs) do
+			if tabData.Page ~= targetPage then
+				tabData.Page.Visible = false
+				tabData.Page.Position = UDim2.new(0, 0, 0, 0)
+				tabData.Page.BackgroundTransparency = 0.4
+			end
+		end
+	end
+
+	local function transitionToPage(newPage)
+		if not newPage then
+			return
+		end
+
+		local oldPage = activeTab and activeTab.Page or nil
+		if oldPage == newPage then
+			return
+		end
+
+		newPage.Visible = true
+		newPage.Position = UDim2.new(0, 18, 0, 0)
+		newPage.BackgroundTransparency = 1
+
+		local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		tween(newPage, info, {
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 0.4
+		})
+
+		if oldPage then
+			tween(oldPage, info, {
+				Position = UDim2.new(0, -18, 0, 0),
+				BackgroundTransparency = 1
+			}).Completed:Once(function()
+				if activeTab and activeTab.Page == newPage then
+					oldPage.Visible = false
+					oldPage.Position = UDim2.new(0, 0, 0, 0)
+					oldPage.BackgroundTransparency = 0.4
+				end
+			end)
+		end
+	end
+
 	local function refreshTabs()
 		for _, tabData in ipairs(tabs) do
-			tabData.Page.Visible = tabData == activeTab
 			tabData.Button.BackgroundColor3 = tabData == activeTab and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
 		end
 	end
 
 	local function setActiveTab(tabData)
+		if activeTab == tabData then
+			return
+		end
+
+		local previous = activeTab
 		activeTab = tabData
 		refreshTabs()
+
+		if previous then
+			previous.Page.Visible = true
+		end
+
+		hideAllPagesExcept(tabData.Page)
+		transitionToPage(tabData.Page)
 	end
 
 	local function showWindow()
@@ -459,7 +514,11 @@ function UI:CreateWindow(options)
 		table.insert(tabs, tabData)
 
 		if not activeTab then
-			setActiveTab(tabData)
+			activeTab = tabData
+			tabData.Page.Visible = true
+			tabData.Page.Position = UDim2.new(0, 0, 0, 0)
+			tabData.Page.BackgroundTransparency = 0.4
+			refreshTabs()
 		else
 			refreshTabs()
 		end

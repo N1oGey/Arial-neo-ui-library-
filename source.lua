@@ -111,7 +111,7 @@ function UI:CreateWindow(options)
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
+		CornerRadius = UDim.new(0, 5),
 		Parent = main
 	})
 

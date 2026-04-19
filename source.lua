@@ -7,10 +7,10 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local function create(className, props)
+local function create(className, properties)
 	local obj = Instance.new(className)
-	for key, value in pairs(props) do
-		obj[key] = value
+	for property, value in pairs(properties) do
+		obj[property] = value
 	end
 	return obj
 end
@@ -67,9 +67,9 @@ local function bindDrag(guiObject, handle)
 	end)
 end
 
-local function bindCanvas(scrollFrame, layout, padding)
+local function bindCanvas(scrollFrame, layout, extraPadding)
 	local function update()
-		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + padding)
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + extraPadding)
 	end
 
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
@@ -105,7 +105,7 @@ function UI:CreateWindow(options)
 		BackgroundTransparency = 0.7,
 		Size = UDim2.new(0, 590, 0, 330),
 		Position = UDim2.new(0, 148, 0, 6),
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		AnchorPoint = Vector2.new(0, 0),
 		ZIndex = 2,
 		ClipsDescendants = false
 	})
@@ -245,8 +245,8 @@ function UI:CreateWindow(options)
 		BorderSizePixel = 0,
 		BackgroundColor3 = Color3.fromRGB(192, 192, 192),
 		Size = UDim2.new(0, 50, 0, 50),
-		Position = UDim2.new(0, 87, 0, 41),
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 62, 0, 16),
+		AnchorPoint = Vector2.new(0, 0),
 		Image = iconImage,
 		AutoButtonColor = false,
 		Visible = true,
@@ -268,53 +268,39 @@ function UI:CreateWindow(options)
 	bindDrag(main, title)
 	bindDrag(openGui, openGui)
 
-	local function hideAllPagesExcept(targetPage)
+	local function refreshTabs()
 		for _, tabData in ipairs(tabs) do
-			if tabData.Page ~= targetPage then
-				tabData.Page.Visible = false
-				tabData.Page.Position = UDim2.new(0, 0, 0, 0)
-				tabData.Page.BackgroundTransparency = 0.4
-			end
+			tabData.Button.BackgroundColor3 = tabData == activeTab and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
 		end
 	end
 
-	local function transitionToPage(newPage)
+	local function transitionToPage(newPage, oldPage)
 		if not newPage then
 			return
 		end
 
-		local oldPage = activeTab and activeTab.Page or nil
-		if oldPage == newPage then
-			return
-		end
+		local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 		newPage.Visible = true
-		newPage.Position = UDim2.new(0, 18, 0, 0)
 		newPage.BackgroundTransparency = 1
+		newPage.Position = UDim2.new(0, 14, 0, 0)
 
-		local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		tween(newPage, info, {
-			Position = UDim2.new(0, 0, 0, 0),
-			BackgroundTransparency = 0.4
+			BackgroundTransparency = 0.4,
+			Position = UDim2.new(0, 0, 0, 0)
 		})
 
-		if oldPage then
+		if oldPage and oldPage ~= newPage then
 			tween(oldPage, info, {
-				Position = UDim2.new(0, -18, 0, 0),
-				BackgroundTransparency = 1
+				BackgroundTransparency = 1,
+				Position = UDim2.new(0, -14, 0, 0)
 			}).Completed:Once(function()
-				if activeTab and activeTab.Page == newPage then
+				if oldPage ~= newPage then
 					oldPage.Visible = false
 					oldPage.Position = UDim2.new(0, 0, 0, 0)
 					oldPage.BackgroundTransparency = 0.4
 				end
 			end)
-		end
-	end
-
-	local function refreshTabs()
-		for _, tabData in ipairs(tabs) do
-			tabData.Button.BackgroundColor3 = tabData == activeTab and Color3.fromRGB(180, 180, 180) or Color3.fromRGB(206, 206, 206)
 		end
 	end
 
@@ -327,12 +313,15 @@ function UI:CreateWindow(options)
 		activeTab = tabData
 		refreshTabs()
 
-		if previous then
-			previous.Page.Visible = true
+		for _, tab in ipairs(tabs) do
+			if tab ~= tabData then
+				tab.Page.Visible = false
+				tab.Page.BackgroundTransparency = 0.4
+				tab.Page.Position = UDim2.new(0, 0, 0, 0)
+			end
 		end
 
-		hideAllPagesExcept(tabData.Page)
-		transitionToPage(tabData.Page)
+		transitionToPage(tabData.Page, previous and previous.Page or nil)
 	end
 
 	local function showWindow()
@@ -516,8 +505,8 @@ function UI:CreateWindow(options)
 		if not activeTab then
 			activeTab = tabData
 			tabData.Page.Visible = true
-			tabData.Page.Position = UDim2.new(0, 0, 0, 0)
 			tabData.Page.BackgroundTransparency = 0.4
+			tabData.Page.Position = UDim2.new(0, 0, 0, 0)
 			refreshTabs()
 		else
 			refreshTabs()

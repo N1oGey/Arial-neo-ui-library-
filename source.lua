@@ -151,7 +151,7 @@ function UI:CreateWindow(options)
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
+		CornerRadius = UDim.new(0, 5),
 		Parent = title
 	})
 
@@ -190,7 +190,7 @@ function UI:CreateWindow(options)
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
+		CornerRadius = UDim.new(0, 5),
 		Parent = closeButton
 	})
 
@@ -210,7 +210,7 @@ function UI:CreateWindow(options)
 	})
 
 	create("UICorner", {
-		CornerRadius = UDim.new(0, 3),
+		CornerRadius = UDim.new(0, 5),
 		Parent = tabFrame
 	})
 
